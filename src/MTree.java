@@ -1,26 +1,26 @@
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-//import MNode;
 
 public class MTree {
-	//private MNode merkleNode;
 	private String nodeHash;
-	private ArrayList<MNode> root;
+	private MNode root;
 	public MTree(String fileContent){
 		String[] contents = fileContent.split("");
 		ArrayList<MNode> childNodes = new ArrayList<MNode>();	
 		for(String con : contents){
-			MNode temp = new MNode();
-			nodeHash = temp.getSHA(con);
-			temp.hashValue=nodeHash;	
-			childNodes.add(temp);
+			nodeHash =  getSHA(con);
+			MNode merkleNode = new MNode(nodeHash);	
+			childNodes.add(merkleNode);
 		}
 		root = createTree(childNodes);
-		System.out.println(root);
+		System.out.println("Root: " +root.hashValue);
 	}
 
-    public ArrayList <MNode> createTree(ArrayList<MNode> cNodes) {
+    public MNode createTree(ArrayList<MNode> cNodes) {
         if(cNodes.size() == 1){
-        	return cNodes;
+        	return cNodes.get(0);
         }
         ArrayList <MNode> parents = new ArrayList<MNode>();
         int nodeIndex=0;
@@ -33,52 +33,55 @@ public class MTree {
         	else
         		rNode=lNode;
         	parents.add(createParent(lNode, rNode));       
-        	nodeIndex +=2;
+        	nodeIndex += 2;
         }while(nodeIndex<cNodes.size());
         return createTree(parents);
     }
 
-    public MNode createParent(MNode rNode, MNode lNode){
-    	MNode parentNode = new MNode();
+    public MNode createParent(MNode lNode, MNode rNode){
+    	//MNode parentNode = new MNode();
     	String nodeHash = rNode.hashValue + lNode.hashValue;
-    	String parentNodeHash = parentNode.getSHA(nodeHash);
-    	parentNode.hashValue = parentNodeHash;
-    	lNode.parent = parentNode;
-    	rNode.parent = parentNode;
+    	String parentNodeHash = getSHA(nodeHash);
+    	MNode parentNode = new MNode(parentNodeHash);
+    	parentNode.lChild=lNode;
+    	parentNode.rChild=rNode;
+    	lNode.parent = rNode.parent = parentNode;
     	
-    	System.out.printf("Left Child: ", lNode.hashValue);
-    	System.out.printf(" Right Child: ", rNode.hashValue);
-    	System.out.printf(" Parent: ", parentNode.hashValue);
+    	System.out.println("Left Child: " + lNode.hashValue);
+    	System.out.println("Right Child: " + rNode.hashValue);
+    	System.out.println("Parent: " + parentNode.hashValue);
+    	System.out.println("---------------------------------");
     	return parentNode;
     }
+    public static String getSHA(String input)
+    {
+        try {
 
- /*   private ArrayList<String> merkleTree(ArrayList<String> hashList){
-        //Return the Merkle Root
-        if(hashList.size() == 1){
-            return hashList;
+            // Static getInstance method is called with hashing SHA
+            MessageDigest hashedToken = MessageDigest.getInstance("SHA-1");
+            byte[] hashedTokenArr = new byte[20];
+            // digest() method called to calculate message digest of an input and return array of byte
+            hashedTokenArr = hashedToken.digest(input.getBytes());
+            // Convert byte array into Numerical representation
+            BigInteger hashedTokenNumeric = new BigInteger(1, hashedTokenArr);
+            // Convert message digest into hex value
+            String hashedTokenValue = hashedTokenNumeric.toString(20);
+
+	        while(hashedTokenValue.length() < 20) {
+	            hashedTokenValue = "0" + hashedTokenValue;
+	        }
+            return hashedTokenValue;
         }
-        ArrayList<String> parentHashList=new ArrayList<>();
-        //Hash the leaf transaction pair to get parent transaction
-        int i=0;
-        do{
-            String hashedString = getSHA(hashList.get(i).concat(hashList.get(i+1)));
-            parentHashList.add(hashedString);
-            i+=2;
-        }while(i<(hashList.size()-1));
-        // If odd number of transactions , add the last transaction again
-        if(hashList.size() % 2 == 1){
-            String lastHash=hashList.get(hashList.size()-1);
-            String hashedString = getSHA(lastHash.concat(lastHash));
-            parentHashList.add(hashedString);
+
+        // For specifying wrong message digest algorithms
+        catch (NoSuchAlgorithmException e) {
+            System.out.println("Exception thrown" + " for incorrect algorithm: " + e);
+            return null;
         }
-        System.out.println(parentHashList);
-        return merkleTree(parentHashList);
-    }*/
-
-
+    }
 
 	public static void main(String[] args) {
-		String file = "SujinaSaddival";
+		String file = "Sujina";
 		new MTree(file);
 	}
 }
