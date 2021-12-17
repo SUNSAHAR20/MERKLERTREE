@@ -3,12 +3,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
-public class MTree {
+public class MTree extends VO {
 	private String nodeHash;
-	private MNode root;
+	private static MNode root;
+	ArrayList<MNode> childNodes = new ArrayList<MNode>();
+	ArrayList<MNode> checkNodes = new ArrayList<MNode>();
 	public MTree(String fileContent){
-		String[] contents = fileContent.split("");
-		ArrayList<MNode> childNodes = new ArrayList<MNode>();	
+		String[] contents = fileContent.split("");	
 		for(String con : contents){
 			nodeHash =  getSHA(con);
 			MNode merkleNode = new MNode(nodeHash);	
@@ -19,7 +20,7 @@ public class MTree {
 	}
 
     public MNode createTree(ArrayList<MNode> cNodes) {
-        if(cNodes.size() == 1){
+        if(cNodes.size() == 1){ 
         	return cNodes.get(0);
         }
         ArrayList <MNode> parents = new ArrayList<MNode>();
@@ -32,7 +33,9 @@ public class MTree {
         		rNode = cNodes.get(nodeIndex+1);
         	else
         		rNode=lNode;
-        	parents.add(createParent(lNode, rNode));       
+        	MNode checkNode = createParent(lNode, rNode);
+        	parents.add(checkNode);
+        	checkNodes.add(checkNode);
         	nodeIndex += 2;
         }while(nodeIndex<cNodes.size());
         return createTree(parents);
@@ -47,9 +50,9 @@ public class MTree {
     	parentNode.rChild=rNode;
     	lNode.parent = rNode.parent = parentNode;
     	
-    	System.out.println("Left Child: " + lNode.hashValue);
-    	System.out.println("Right Child: " + rNode.hashValue);
-    	System.out.println("Parent: " + parentNode.hashValue);
+    	System.out.println("Left Child: " + parentNode.lChild.hashValue);
+    	System.out.println("Right Child: " + parentNode.rChild.hashValue);
+    	System.out.println("Parent: " + lNode.parent.hashValue);
     	System.out.println("---------------------------------");
     	return parentNode;
     }
@@ -65,9 +68,9 @@ public class MTree {
             // Convert byte array into Numerical representation
             BigInteger hashedTokenNumeric = new BigInteger(1, hashedTokenArr);
             // Convert message digest into hex value
-            String hashedTokenValue = hashedTokenNumeric.toString(20);
+            String hashedTokenValue = hashedTokenNumeric.toString(16);
 
-	        while(hashedTokenValue.length() < 20) {
+	        while(hashedTokenValue.length() < 40) {
 	            hashedTokenValue = "0" + hashedTokenValue;
 	        }
             return hashedTokenValue;
@@ -79,9 +82,74 @@ public class MTree {
             return null;
         }
     }
+    
+    public ArrayList<VO> checkVOPossible(String checkNodeHash){
+    	ArrayList<VO> checker = new ArrayList<VO>();
+    	for(MNode cnode : childNodes ){
+    		if (cnode.hashValue.equals(checkNodeHash)){
+    			System.out.println("Value Available in Server");	
+    			checker = createVO(cnode,checker);
+    			return checker;
+    		}
+    	}
+    	return checker;
+    }
+    
+    public ArrayList<VO> createVO(MNode node, ArrayList<VO>checker){
+    	VO trialNode = new VO();
+    	if(node.hashValue == root.hashValue){
+    		trialNode.trial_hash = node.hashValue;
+    		trialNode.flag = false;
+    		checker.add(trialNode);
+    		return checker;
+    	}
+    	if((node.parent.lChild).equals(node)){
+    		//int rIndex = checkNodes.indexOf(parentNode.rChild);
+    		trialNode.trial_hash = node.parent.rChild.hashValue;
+    		trialNode.flag = true;
+    		checker.add(trialNode);
+    	}
+    	else {
+    		//int lIndex = checkNodes.indexOf(parentNode.lChild);
+    		trialNode.trial_hash = node.parent.lChild.hashValue;
+    		trialNode.flag = false;
+    		checker.add(trialNode);
+    	}
+    	return createVO(node.parent,checker);	
+    }
 
 	public static void main(String[] args) {
-		String file = "Sujina";
-		new MTree(file);
+		String file = "sujina";
+		MTree txn = new MTree(file);
+		String hashed_String = getSHA("l");
+		ArrayList<VO> checkObject = txn.checkVOPossible(hashed_String);
+		if(checkObject.size()>0){
+			//return the values
+			//verify function
+			String verifiedObject = hashed_String;
+			String rootValue = checkObject.get(checkObject.size()-1).trial_hash;
+			checkObject.remove(checkObject.size()-1);
+			for(VO object : checkObject){
+				String objectHash = object.trial_hash;
+				boolean objectFlag = object.flag;
+				if(!objectFlag){
+					verifiedObject = getSHA(verifiedObject + objectHash);
+				}
+				else{
+					verifiedObject = getSHA(objectHash + verifiedObject);
+				}
+			}
+			System.out.println("VO: "+verifiedObject);
+			System.out.println("AR: "+rootValue);
+			if(verifiedObject.equals(rootValue)){
+				System.out.println("Success");
+			}
+			else{
+			System.out.println("Failure");
+			}
+		}
+		else{
+		System.out.println("Object not found in tree");
+		}
 	}
 }
