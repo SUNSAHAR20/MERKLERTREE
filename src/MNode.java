@@ -1,8 +1,8 @@
 public class MNode {
 	String hashValue;
-	Object parent;
-	Object lChild;
-	Object rChild;
+	MNode parent;
+	MNode lChild;
+	MNode rChild;
 	public MNode(String hash) {
 		hashValue=hash;
 		parent=null;
