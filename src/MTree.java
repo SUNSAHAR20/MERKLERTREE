@@ -10,14 +10,35 @@ public class MTree extends VO {
 	ArrayList<MNode> checkNodes = new ArrayList<MNode>();
 
 	public MTree(String fileContent) {
+
 		String[] contents = fileContent.split("");
+		System.out.println("Server: <In Progress> Spliting the given file content based on the charecter");
+		System.out.println();
+
 		for (String con : contents) {
 			nodeHash = getSHA(con);
+			System.out.println("Server: <In Progress> Generate unique SHA key for a charecter" + " - " + con);
+			
 			MNode merkleNode = new MNode(nodeHash);
+			System.out.println("Server: <In Progress> Creating a node for a given SHA key");
+			System.out.println("------------------------------------------------------------------------------");
+			
 			childNodes.add(merkleNode);
 		}
+
+		System.out.println("Server: <Complete> Created leaf nodes with hash value");
+		System.out.println();
+		
+		System.out.println("Server: <In Progress> Creating a Merkle Tree");
+
 		root = createTree(childNodes);
-		System.out.println("Root: " + root.hashValue);
+		
+		System.out.println("Server: <Complete> Created root node");
+		System.out.println("Server: <Complete> Hash value: " + root.hashValue);
+		System.out.println();
+		System.out.println("Server: <Complete> Merkle tree created successfully");
+		System.out.println();
+		
 	}
 
 	public MNode createTree(ArrayList<MNode> cNodes) {
@@ -30,15 +51,22 @@ public class MTree extends VO {
 		MNode lNode;
 		MNode rNode;
 
+		System.out.println("Server: <In Progress> Adding child nodes to a Merkle Tree");
+		System.out.println();
+		
 		do {
 			lNode = cNodes.get(nodeIndex);
 			if ((nodeIndex + 1) < cNodes.size())
 				rNode = cNodes.get(nodeIndex + 1);
+
 			else
 				rNode = lNode;
+
 			MNode checkNode = createParent(lNode, rNode);
+
 			parents.add(checkNode);
 			checkNodes.add(checkNode);
+			
 			nodeIndex += 2;
 		} while (nodeIndex < cNodes.size());
 
@@ -54,17 +82,24 @@ public class MTree extends VO {
 		parentNode.rChild = rNode;
 		lNode.parent = rNode.parent = parentNode;
 
-		System.out.println("Left Child: " + parentNode.lChild.hashValue);
-		System.out.println("Right Child: " + parentNode.rChild.hashValue);
-		System.out.println("Parent: " + lNode.parent.hashValue);
-		System.out.println("---------------------------------");
+		System.out.println("Server: <Complete> Added left child node");
+		System.out.println("Server: <Complete> Hash value: " + parentNode.lChild.hashValue);
+		System.out.println();
+		
+		System.out.println("Server: <Complete> Added right  child node");
+		System.out.println("Server: <Complete> Hash value: " + parentNode.rChild.hashValue);
+		System.out.println();
+		
+		System.out.println("Server: <Complete> Created parent got the above child");
+		System.out.println("Server: <Complete> Hash value of Parent: " + lNode.parent.hashValue);
+		System.out.println("------------------------------------------------------------------------------");
 
 		return parentNode;
 	}
 
 	public static String getSHA(String input) {
 		try {
-
+			System.out.println("Server: <In Progress> Encrypted the transaction");
 			// Static getInstance method is called with hashing SHA
 			MessageDigest hashedToken = MessageDigest.getInstance("SHA-1");
 			byte[] hashedTokenArr = new byte[20];
@@ -91,11 +126,20 @@ public class MTree extends VO {
 	}
 
 	public ArrayList<VO> checkVOPossible(String checkNodeHash) {
+		
+		System.out.println("Server: <In Progress> Checking if leave exists and return the audit trail if it does");
+		System.out.println();
+		
 		ArrayList<VO> checker = new ArrayList<VO>();
 
 		for (MNode cnode : childNodes) {
 			if (cnode.hashValue.equals(checkNodeHash)) {
-				System.out.println("Value Available in Server");
+				System.out.println("Server: <Complete> Leaf exists");
+				System.out.println();
+				
+				System.out.println("Server: <In Progress> Create verification object");
+				System.out.println();
+				
 				checker = createVO(cnode, checker);
 				return checker;
 			}
@@ -107,64 +151,43 @@ public class MTree extends VO {
 	public ArrayList<VO> createVO(MNode node, ArrayList<VO> checker) {
 		VO trialNode = new VO();
 
+		System.out.println("Server: <In Progress> Creating verification object in a bottom-up fashion");
+		
+		System.out.println("Server: <In Progress> Check if merkle node is root node");
+		System.out.println();
+		
 		if (node.hashValue == root.hashValue) {
 			trialNode.trial_hash = node.hashValue;
 			trialNode.flag = false;
+			System.out.println("Server: <Complete> Given Merkle node is root node");
 			checker.add(trialNode);
 			return checker;
 		}
-
+		
+		System.out.println("Server: <Complete> Merkle node is not root node");
+		System.out.println();
+		
+		System.out.println("Server: <In Progress> Check if merkle node is the left child or the right child");
+		
 		if ((node.parent.lChild).equals(node)) {
-			// int rIndex = checkNodes.indexOf(parentNode.rChild);
 			trialNode.trial_hash = node.parent.rChild.hashValue;
 			trialNode.flag = true;
+			System.out.println("Server: <Complete> Since the current node is left node, right node is required for audit trail");
+			System.out.println();
+			
 			checker.add(trialNode);
 		} else {
-			// int lIndex = checkNodes.indexOf(parentNode.lChild);
 			trialNode.trial_hash = node.parent.lChild.hashValue;
 			trialNode.flag = false;
+			System.out.println("Server: <Complete> Since the current node is right node, left node is required for audit trail");
+			System.out.println();
+			
 			checker.add(trialNode);
 		}
-
+		
+		System.out.println("------------------------------------------------------------------------------------------------");
+		System.out.println("Server: <In Progress> Sending parent node as a child node");
+		
 		return createVO(node.parent, checker);
-	}
-
-	public static void main(String[] args) {
-		String file = "sujinaa";
-		new MTree(file);
-//		String hashed_String = getSHA("a");
-//		
-//		ArrayList<VO> checkObject = txn.checkVOPossible(hashed_String);
-//		
-//		if(checkObject.size()>0){
-//			//return the values
-//			//verify function
-//			String verifiedObject = hashed_String;
-//			String rootValue = checkObject.get(checkObject.size()-1).trial_hash;
-//			checkObject.remove(checkObject.size()-1);
-//			for(VO object : checkObject){
-//				String objectHash = object.trial_hash;
-//				boolean objectFlag = object.flag;
-//				if(!objectFlag){
-//					verifiedObject = getSHA(verifiedObject + objectHash);
-//				}
-//				else{
-//					verifiedObject = getSHA(objectHash + verifiedObject);
-//				}
-//			}
-//			
-//			System.out.println("VO: "+verifiedObject);
-//			System.out.println("AR: "+rootValue);
-//			
-//			if(verifiedObject.equals(rootValue)){
-//				System.out.println("Success");
-//			}
-//			else{
-//			System.out.println("Failure");
-//			}
-//		}
-//		else{
-//			System.out.println("Object not found in tree");
-//		}
 	}
 }
